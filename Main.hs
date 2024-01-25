@@ -5,12 +5,10 @@
 
 module Main where
 
-import           Control.Monad            (forM_, join, liftM2, unless)
+import           Control.Monad            (void)
 import           Data.ByteString.Internal (c2w, w2c)
 import           Data.Function            (fix, (&))
 import           Data.Functor             (($>), (<&>))
-import           Data.IORef               (modifyIORef, newIORef, readIORef)
-import           Data.Text                (Text)
 import qualified Data.Text.IO             as T
 import qualified Data.Vector.Mutable      as MV
 import           Data.Word                (Word16, Word8)
@@ -51,25 +49,28 @@ brainfuckParser = ignore *> sepEndBy (Op <$> choice opParsers <|> loopParser) ig
     loopParser = Loop <$> between (char '[') (char ']') brainfuckParser
     ignore = skipMany $ noneOf ((opChar <$> [OpInc ..]) ++ ['[', ']'])
 
-runBrainfuck :: forall a. (Num a, Integral a, Bounded a) => Brainfuck -> IO ()
+runBrainfuck :: Brainfuck -> IO ()
 runBrainfuck bf = do
-  dataPointer <- newIORef (0 :: a)
-  arr <- MV.replicate @_ @Word8 (fromIntegral (maxBound @a) + 1) 0
+  arr <- MV.replicate @_ @Word8 (fromIntegral (maxBound @Word16) + 1) 0
 
-  let readRef = fromIntegral <$> readIORef dataPointer
-      modifyRef = modifyIORef dataPointer
+  let dataPointer = (0 :: Word16)
+      w2i = fromIntegral
 
-  bf & fix \evalLoop bf' ->
-    forM_ bf' \case
-      Op OpInc    -> readRef >>= MV.modify arr (+ 1)
-      Op OpDec    -> readRef >>= MV.modify arr (- 1)
-      Op OpLeft   -> modifyRef (- 1)
-      Op OpRight  -> modifyRef (+ 1)
-      Op OpOutput -> readRef >>= MV.read arr >>= putChar . w2c
-      Op OpInput  -> join $ liftM2 (MV.write arr) readRef (c2w <$> getChar)
-      Loop bf''   -> fix \recurse -> do
-        state <- readRef >>= MV.read arr
-        unless (state == 0) (evalLoop bf'' >> recurse)
+      evalLoop :: Word16 -> Brainfuck -> IO Word16
+      evalLoop !dp = \case
+        []               -> return dp
+        Op OpInc    : xs -> MV.modify arr (+ 1) (w2i dp) >> evalLoop dp xs
+        Op OpDec    : xs -> MV.modify arr (- 1) (w2i dp) >> evalLoop dp xs
+        Op OpLeft   : xs -> evalLoop (dp - 1) xs
+        Op OpRight  : xs -> evalLoop (dp + 1) xs
+        Op OpOutput : xs -> MV.read arr (w2i dp) >>= putChar . w2c >> evalLoop dp xs
+        Op OpInput  : xs -> (MV.write arr (w2i dp) . c2w =<< getChar) >> evalLoop dp xs
+        Loop bf''   : xs ->
+            dp & fix \loop !dp' -> do
+              state <- MV.read arr (w2i dp')
+              if state == 0 then evalLoop dp' xs else evalLoop dp' bf'' >>= loop
+
+  void $ evalLoop dataPointer bf
 
   putChar '\n'
 
@@ -79,4 +80,4 @@ main = do
   file <- T.readFile filePath
   case parse brainfuckParser filePath file of
     Left err -> print err
-    Right bf -> runBrainfuck @Word16 bf
+    Right bf -> runBrainfuck bf
