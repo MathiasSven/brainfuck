@@ -2,6 +2,14 @@
 
 pkgs.mkShell {
   packages = with pkgs; [
-    (haskellPackages.ghcWithPackages (p: with p; [ vector ]))
+    (haskellPackages.ghcWithPackages (p: with p; [ 
+      vector 
+      x86-64bit 
+      temporary 
+      cmdargs 
+      file-embed 
+    ]))
+    fasm
+    hlint
   ];
 }

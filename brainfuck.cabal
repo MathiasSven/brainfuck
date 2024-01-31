@@ -1,0 +1,39 @@
+cabal-version:      3.4
+name:               brainfuck
+version:            0.1.0.0
+license:            MIT
+license-file:       LICENSE
+author:             Mathias Sven
+maintainer:         mathiassven2@hotmail.com
+category:           Development
+build-type:         Simple
+
+common warnings
+    ghc-options: -Wall
+
+executable bfrun
+    import:           warnings
+    main-is:          Main.hs
+    other-modules:    Parser
+                    , Interpreter
+                    , Jit
+                    , Compiler
+
+    build-depends:    base ^>=4.17.2.1
+                    , text
+                    , parsec
+                    , vector
+                    , primitive
+                    , bytestring
+                    , process
+                    , filepath
+                    , directory
+                    , template-haskell
+
+                    , x86-64bit
+                    , temporary
+                    , cmdargs
+                    , file-embed
+
+    hs-source-dirs:   src
+    default-language: GHC2021
