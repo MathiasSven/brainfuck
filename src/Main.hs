@@ -5,6 +5,7 @@ module Main where
 import qualified Data.Text.IO                    as T
 import           Data.Word                       (Word16)
 import           System.Console.CmdArgs.Implicit hiding (Mode)
+import           System.Exit                     (exitSuccess)
 import           System.FilePath                 (dropExtension)
 import           System.IO                       (BufferMode (..),
                                                   hSetBuffering, stdin, stdout)
@@ -12,16 +13,21 @@ import           System.IO                       (BufferMode (..),
 import           Compiler                        (compileBrainfuck)
 import           Interpreter                     (runBrainfuck)
 import qualified Jit                             (runBrainfuck)
+import           Repl                            (runRepl)
 import           Parser                          (parseBrainfuck)
 
 
 main :: IO ()
 main = do
   mode <- cmdArgs bfrun
+
   case mode of
     Interpret{noBuffering} | noBuffering -> do
       hSetBuffering stdin NoBuffering
       hSetBuffering stdout NoBuffering
+
+    Repl -> runRepl >> exitSuccess
+
     _ -> return ()
 
   file <- T.readFile $ inputPath mode
@@ -35,6 +41,8 @@ main = do
         where
           outPath = if out == "" then dropExtension inputPath else out
 
+      Repl -> error "This should be unreachable"
+
 
 data BfRun
   = Interpret { inputPath   :: FilePath
@@ -45,12 +53,13 @@ data BfRun
             , out       :: FilePath
             , dontLink  :: Bool
             }
+  | Repl
   deriving (Show, Data)
 
 bfrun :: BfRun
-bfrun = modes [interpret &= auto, compile]
+bfrun = modes [interpret &= auto, repl, compile]
         &= versionArg [ignore]
-        &= summary "The bfrun utility\n\nBrainfuck interpreter, JIT and compiler"
+        &= summary "The bfrun utility\n\nBrainfuck interpreter, Repl, JIT and compiler"
   where
     interpret = Interpret
       { inputPath = def &= typFile &= argPos 0
@@ -63,3 +72,5 @@ bfrun = modes [interpret &= auto, compile]
       , out = def &= help "Output file" &= typFile
       , dontLink = False &= explicit &= name "c" &= help "Compile and assemble, but do not link"
       }
+
+    repl = Repl

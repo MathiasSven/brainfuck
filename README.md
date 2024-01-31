@@ -1,6 +1,8 @@
-# Brainfuck Interpreter, JIT & ~~Compiler~~
+# Brainfuck Interpreter, REPL, JIT & ~~Compiler~~
 
-A super simple brainfuck parser/interpreter.
+A brainfuck parser/interpreter.
+
+For REPL, use `bfrun repl`.
 
 JIT Interpretation is also available, however it is not fully functioning. There are some bugs around reading from `stdin`.
 
