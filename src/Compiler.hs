@@ -41,11 +41,8 @@ fasmCompile args = withSystemTempFile "fasm" \file handle -> do
 
 compileBrainfuck :: Bool -> FilePath -> Brainfuck -> IO ()
 compileBrainfuck link outPath bf = do
-  let asmCode = toFASMCode do
-        callFun rbp c_getchar_ptr
-        callFun rbp c_putchar_ptr
-        jitCompile (groupOps bf)
-  withSystemTempFile "bfrun-code.bf" \file handle -> do
+  let asmCode = toFASMCode $ jitCompile (groupOps bf)
+  withSystemTempFile "bfrun-code.fasm" \file handle -> do
     T.hPutStr handle asmCode
     hClose handle
     let objFile = outPath -<.> "o"
@@ -55,9 +52,14 @@ compileBrainfuck link outPath bf = do
       removeFile objFile
 
 toFASMCode :: Code -> Text
-toFASMCode c = header <> fixup (pack mainCode) <> footer
+toFASMCode code = header <> fixup (pack mainCode) <> footer
   where
-    mainCode = (unlines . init . fmap lineHandler . lines . show) c
+    mainCode = (unlines . init . fmap lineHandler . lines . show) padedCode
+
+    padedCode = do
+      callFun rbp c_getchar_ptr
+      callFun rbp c_putchar_ptr
+      code
 
     header = pack $ unlines
       [ "format ELF64"
