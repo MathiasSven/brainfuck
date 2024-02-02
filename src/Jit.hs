@@ -35,14 +35,14 @@ jitCompile bfa = go bfa >> ret
   where
     fromInt2W8 i = fromIntegral $ fromIntegral @_ @Word8 i
     go = mapM_ \case
-      OpA OpInc    i -> add (addr8 di) (fromInt2W8 i)
-      OpA OpDec    i -> sub (addr8 di) (fromInt2W8 i)
+      OpA OpInc    i -> add (addr8 rdi) (fromInt2W8 i)
+      OpA OpDec    i -> sub (addr8 rdi) (fromInt2W8 i)
       OpA OpLeft   i -> sub di (fromInt2W8 i)
       OpA OpRight  i -> add di (fromInt2W8 i)
       OpA OpOutput i -> replicateM_ (fromInt2W8 i) do
         push rdi
         push rbp
-        mov di (addr16 di)
+        mov di (addr16 rdi)
         callFun rbp c_putchar_ptr
         pop rbp
         pop rdi
@@ -52,13 +52,13 @@ jitCompile bfa = go bfa >> ret
         callFun rbp c_getchar_ptr
         pop rbp
         pop rdi
-        mov (addr16 di) ax
+        mov (addr rdi) ax
       LoopA bf -> mdo
-        cmp (addr8 di) 0
+        cmp (addr8 rdi) 0
         j Z l2
         l1 <- label
         go bf
-        cmp (addr8 di) 0
+        cmp (addr8 rdi) 0
         j NZ l1
         l2 <- label
         return ()

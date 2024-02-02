@@ -87,7 +87,6 @@ toFASMCode code = header <> fixup (pack mainCode) <> footer
         else unwords . drop 2 $ l
 
     fixup t =
-      replace "[di]" "[rdi]" $
       replace getCharRep "call getchar\n" $
       replace putCharRep "call putchar\n" $
       T.unlines $ drop 4 $ T.lines t
