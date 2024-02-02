@@ -70,8 +70,8 @@ toFASMCode code = header <> fixup (pack mainCode) <> footer
       , "public _start"
       , "section '.text' executable"
       , "_start:"
-      , "mov rdi, 0"
-      , "mov rsi, " ++ show @Int (fromIntegral (maxBound @Word16) * 2)
+      , "mov rdi, " ++ show @Int (fromIntegral (maxBound @Word16) * 2)
+      , "mov rsi, 1"
       , "call calloc"
       , "mov rdi, rax"
       ]
